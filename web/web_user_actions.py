@@ -1,11 +1,12 @@
 import random
 import threading
-from time import sleep
 from selenium.webdriver.support.ui import Select
 from data.web_params import *
 from utils.common_web import get_image_path, get_date, get_time
 from utils.find_element import get_element, get_element_by_xpath, get_elements_by_xpath
 from web.web_locator_info import *
+from time import sleep
+from datetime import datetime
 
 class WebActions:
 
@@ -24,7 +25,7 @@ class WebActions:
         get_element(self.driver, sign_in).click()
         self.driver.get(manage_url)
 
-    def schedule_a_show(self,new_title):
+    def schedule_a_show(self, new_title):
         new_show = Show(title=new_title, cover_image=get_image_path(), date=get_date(), time=get_time())
         get_element(self.driver, schedule_a_show).click()
         get_element(self.driver, title).send_keys(new_show.title)
@@ -76,7 +77,8 @@ class WebActions:
     def create_random_set_price_listing(self, num=1):
         i = 0
         while i < num:
-            listing = Listing(title='random set price', assign_type=random_spot, sell_type=set_price, price_per_spot=10000)
+            listing = Listing(title='random set price', assign_type=random_spot, sell_type=set_price,
+                              price_per_spot=10000)
             self.common_create_steps(listing)
             i += 1
 
@@ -112,7 +114,7 @@ class WebActions:
     def edit(self):
         get_element_by_xpath(self.driver, edit_show).click()
 
-    def show_detail(self,new_title):
+    def show_detail(self, new_title):
         show_detail = LocatorInfo(locator=f"//*[contains(text(), '{new_title}')]/../../footer//*[@title='Details']")
         get_element_by_xpath(self.driver, show_detail).click()
 
@@ -144,6 +146,7 @@ class WebActions:
 
     def end_stream(self):
         get_element_by_xpath(self.driver, end_stream).click()
+        sleep(3)
 
     def add_listings(self):
         sleep(1)
@@ -201,7 +204,6 @@ class WebActions:
             self.run_overlays()
             sleep(30)
 
-
     def run_overlays_thread(self):
         thread = threading.Thread(target=self.overlay_thread)
         thread.setDaemon(True)
@@ -229,6 +231,7 @@ class WebActions:
 
     def threads_flow(self):
         event1 = threading.Event()
+
         def thread1_func():
             self.run_giveaway()
             event1.set()
@@ -254,3 +257,103 @@ class WebActions:
     def run_threads_flow(self):
         thread = threading.Thread(target=self.all_threads_flow)
         thread.start()
+
+    def login_flow(self, show_title):
+        self.login()
+        self.sign_in()
+        self.schedule_a_show(show_title)
+        self.create_pick_spot_auction()
+        self.publish()
+        self.search(show_title)
+        self.show_detail(show_title)
+        self.set_inputs()
+        self.run_a_listing()
+        self.go_live()
+        self.run_giveaway_thread()
+        sleep(10)
+        self.run_overlays_thread()
+
+    def after_test(self):
+        self.driver.close()
+        self.driver.quit()
+
+    def run_forever(self, end_time, func):
+        is_forever = True
+        while is_forever:
+            current_time = datetime.now()
+            if current_time > end_time:
+                self.end_stream()
+                break
+            func()
+
+    def pick_auction(self):
+        auction_sold_out = False
+        while auction_sold_out is not True:
+            try:
+                self.start_auction()
+            except:
+                if self.find_ripping() is True:
+                    auction_sold_out = True
+                else:
+                    pass
+        self.tap_start_ripping()
+        self.create_listing()
+        self.create_pick_spot_auction()
+        self.close_create()
+        self.start_next_listing()
+        try:
+            self.tap_start_ripping()
+            self.start_next_listing()
+        except:
+            pass
+
+    def p_s_flow(self):
+        try:
+            self.tap_start_ripping()
+            self.create_listing()
+            self.create_pick_spot_set_price()
+            self.close_create()
+            self.start_next_listing()
+            try:
+                self.tap_start_ripping()
+                self.start_next_listing()
+            except:
+                raise
+        except:
+            print('Listing not sold out yet')
+
+    def random_auction(self):
+        auction_sold_out = False
+        while auction_sold_out is not True:
+            try:
+                self.start_auction()
+            except:
+                if self.find_ripping() is True:
+                    auction_sold_out = True
+                else:
+                    pass
+        self.tap_start_ripping()
+        self.create_listing()
+        self.create_random_auction()
+        self.close_create()
+        self.start_next_listing()
+        try:
+            self.tap_start_ripping()
+            self.start_next_listing()
+        except:
+            pass
+
+    def random_set_price(self):
+        try:
+            self.randomize_listing()
+            self.create_listing()
+            self.create_random_set_price_listing()
+            self.close_create()
+            self.start_next_listing()
+            try:
+                self.tap_start_ripping()
+                self.start_next_listing()
+            except:
+                raise
+        except:
+            print('Listing not sold out yet')
