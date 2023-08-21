@@ -47,9 +47,8 @@ class WebActions:
         get_element_by_xpath(self.driver, add_listing).click()
 
     def common_create_steps(self, listing):
-        sleep(1)
+        sleep(5)
         get_element(self.driver, listing_title).send_keys(listing.title)
-        sleep(2)
         option_dropdown = get_element(self.driver, select_an_option)
         # option_dropdown.click()
         select = Select(option_dropdown)
@@ -206,7 +205,6 @@ class WebActions:
 
     def run_overlays_thread(self):
         thread = threading.Thread(target=self.overlay_thread)
-        thread.setDaemon(True)
         thread.start()
 
     def run_giveaway(self):
@@ -258,11 +256,18 @@ class WebActions:
         thread = threading.Thread(target=self.all_threads_flow)
         thread.start()
 
-    def login_flow(self, show_title):
+    def login_flow(self, show_title, listing_type):
         self.login()
         self.sign_in()
         self.schedule_a_show(show_title)
-        self.create_pick_spot_auction()
+        if listing_type == 'rs':
+            self.create_random_set_price_listing()
+        elif listing_type == 'ra':
+            self.create_random_auction()
+        elif listing_type == 'ps':
+            self.create_pick_spot_set_price()
+        else:
+            self.create_pick_spot_auction()
         self.publish()
         self.search(show_title)
         self.show_detail(show_title)
